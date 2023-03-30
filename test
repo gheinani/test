@@ -1,0 +1,44 @@
+# Set up parameters for each response
+responses <- c("Pthresh", "Pmax", "Vfilling", "Tmic")
+baseline <- c(13.57, 23.38, 97.29, 5.66)
+effect_sizes <- c(7, 12, 50, 3)
+sd <- c(3, 5, 43.96, 2.22)
+
+# Define function for power calculation using three-way ANOVA
+Fpower3 <- function(a, b, c, n, effect_size, sd, baseline){
+ # Calculate mean square treatment for each factor
+ MST_A <- ((a - 1) * sum((n * (baseline + effect_size))^2) + 
+            sum(n * baseline^2) - sum((n * (baseline + effect_size))^2) - 
+            (n * sum(baseline)^2)) / (a - 1)
+ MST_B <- ((b - 1) * sum((n * (baseline + effect_size))^2) + 
+            sum(n * baseline^2) - sum((n * (baseline + effect_size))^2) - 
+            (n * sum(baseline)^2)) / (b - 1)
+ MST_C <- ((c - 1) * sum((n * (baseline + effect_size))^2) + 
+            sum(n * baseline^2) - sum((n * (baseline + effect_size))^2) - 
+            (n * sum(baseline)^2)) / (c - 1)
+ 
+ # Calculate mean square error
+ MSE <- sum(n * (sd^2 + effect_size^2)) / (a * b * c - a - b - c + 1)
+ 
+ # Calculate F statistic
+ F <- (MST_A + MST_B + MST_C) / MSE
+ 
+ # Calculate power using F distribution
+ pwr <- pf(F, a-1, (a-1)*(b-1)*(c-1), ncp = (effect_size / sd)^2, lower.tail = FALSE)
+ 
+ return(pwr)
+}
+
+# Calculate sample size for each response
+n <- numeric(length(responses))
+for (i in seq_along(responses)) {
+ n[i] <- pwr::pwr.anova.test(k = 4, n = NULL, f = effect_sizes[i] / sd[i], sig.level = 0.05,
+                             power = 0.85)$n
+}
+
+# Print sample sizes
+for (i in seq_along(responses)) {
+ cat("Sample size for", responses[i], ":", ceiling(n[i] / 0.85 / 0.85 / 0.85 / 0.85 * 1.15), "\n")
+}
+
+
